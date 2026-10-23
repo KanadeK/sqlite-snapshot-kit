@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sqlite-snapshot-kit"
+version = "0.1.0"
+description = "Create, verify and rehearse restoring self-contained local SQLite snapshots."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{name = "KanadeK"}]
+dependencies = []
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Environment :: Console",
+]
+
+[project.scripts]
+sqlite-snapshot-kit = "sqlite_snapshot_kit.cli:main"
+
+[project.urls]
+Repository = "https://github.com/KanadeK/sqlite-snapshot-kit"
+Issues = "https://github.com/KanadeK/sqlite-snapshot-kit/issues"
+
+[tool.setuptools.packages.find]
+include = ["sqlite_snapshot_kit*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]
