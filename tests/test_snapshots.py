@@ -128,6 +128,26 @@ class SnapshotTests(unittest.TestCase):
             restore_snapshot(other, self.restored)
         self.assertEqual(self.restored.read_bytes(), b"KEEP")
 
+    def test_defensive_and_readonly_modes_are_enabled(self):
+        with closing(core._connect(self.database, time.monotonic() + 10)) as connection:
+            self.assertTrue(connection.getconfig(sqlite3.SQLITE_DBCONFIG_DEFENSIVE))
+            self.assertEqual(connection.execute("PRAGMA query_only").fetchone(), (1,))
+            self.assertEqual(connection.execute("PRAGMA trusted_schema").fetchone(), (0,))
+            connection.execute("PRAGMA writable_schema=ON")
+            self.assertEqual(connection.execute("PRAGMA writable_schema").fetchone(), (0,))
+
+    def test_virtual_tables_refused_before_integrity_or_row_queries(self):
+        with closing(sqlite3.connect(self.database)) as connection:
+            try:
+                connection.execute("CREATE VIRTUAL TABLE search USING fts5(body)")
+            except sqlite3.OperationalError:
+                self.skipTest("SQLite build does not include FTS5")
+            connection.execute("INSERT INTO search VALUES ('synthetic')")
+            connection.commit()
+        with self.assertRaisesRegex(SnapshotError, "virtual tables"):
+            create_snapshot(self.database, self.snapshot)
+        self.assertFalse(self.snapshot.exists())
+
     def test_existing_restore_sidecar_refused(self):
         create_snapshot(self.database, self.snapshot)
         for suffix in core.SIDECARS:

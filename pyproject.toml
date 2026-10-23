@@ -7,7 +7,7 @@ name = "sqlite-snapshot-kit"
 version = "0.1.0"
 description = "Create, verify and rehearse restoring self-contained local SQLite snapshots."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = "MIT"
 authors = [{name = "KanadeK"}]
 dependencies = []

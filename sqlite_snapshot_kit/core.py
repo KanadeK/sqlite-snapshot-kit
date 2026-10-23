@@ -65,6 +65,7 @@ def _connect(path: Path, deadline: float, *, immutable: bool = False) -> sqlite3
     uri = path.resolve().as_uri() + "?mode=ro" + ("&immutable=1" if immutable else "")
     connection = sqlite3.connect(uri, uri=True, isolation_level=None, timeout=0.1)
     try:
+        _defensive(connection)
         connection.execute("PRAGMA trusted_schema=OFF")
         connection.execute("PRAGMA query_only=ON")
         connection.set_progress_handler(lambda: int(time.monotonic() > deadline), 1000)
@@ -74,24 +75,30 @@ def _connect(path: Path, deadline: float, *, immutable: bool = False) -> sqlite3
     return connection
 
 
+def _defensive(connection: sqlite3.Connection) -> None:
+    if not hasattr(connection, "setconfig") or not hasattr(sqlite3, "SQLITE_DBCONFIG_DEFENSIVE"):
+        raise SnapshotError("Python 3.12+ with SQLite defensive configuration is required")
+    connection.setconfig(sqlite3.SQLITE_DBCONFIG_DEFENSIVE, True)
+    if not connection.getconfig(sqlite3.SQLITE_DBCONFIG_DEFENSIVE):
+        raise SnapshotError("SQLite defensive mode could not be enabled")
+
+
 def _inspect(path: Path, deadline: float, minimum_rows: dict) -> dict:
     with closing(_connect(path, deadline, immutable=True)) as connection:
         _deadline(deadline)
-        if connection.execute("PRAGMA integrity_check(20)").fetchall() != [("ok",)]:
-            raise VerificationError("SQLite integrity check failed")
-        if connection.execute("PRAGMA foreign_key_check").fetchone() is not None:
-            raise VerificationError("SQLite foreign-key violations found")
         fingerprint = hashlib.sha256()
         schema_bytes = 0
         names = []
         with closing(
             connection.execute(
-                "SELECT type, name, tbl_name, CASE WHEN length(sql)>1048576 THEN NULL ELSE sql END, length(sql) "
+                "SELECT type, name, tbl_name, CASE WHEN length(sql)>1048576 THEN NULL ELSE sql END, length(sql), rootpage "
                 "FROM sqlite_schema ORDER BY type, name, tbl_name"
             )
         ) as cursor:
-            for kind, name, table_name, sql, sql_length in cursor:
+            for kind, name, table_name, sql, sql_length, rootpage in cursor:
                 _deadline(deadline)
+                if kind == "table" and rootpage == 0:
+                    raise SnapshotError("virtual tables are unsupported in version 0.1.0")
                 if sql_length is not None and sql_length > 1_048_576:
                     raise SnapshotError("schema statement exceeds one million characters")
                 encoded = (
@@ -108,6 +115,10 @@ def _inspect(path: Path, deadline: float, minimum_rows: dict) -> dict:
                     names.append(name)
                     if len(names) > 10_000:
                         raise SnapshotError("database exceeds 10000 user tables")
+        if connection.execute("PRAGMA integrity_check(20)").fetchall() != [("ok",)]:
+            raise VerificationError("SQLite integrity check failed")
+        if connection.execute("PRAGMA foreign_key_check").fetchone() is not None:
+            raise VerificationError("SQLite foreign-key violations found")
         tables = []
         for name in names:
             _deadline(deadline)
@@ -193,6 +204,7 @@ def create_snapshot(
             closing(_connect(source, deadline)) as original,
             closing(sqlite3.connect(payload)) as target,
         ):
+            _defensive(target)
             page_size = original.execute("PRAGMA page_size").fetchone()[0]
 
             def progress(status: int, remaining: int, total: int):

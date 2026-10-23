@@ -26,6 +26,9 @@ exact keys, unique table names, nonnegative integer counts and SHA-256 digests. 
 keys and links/reparse points are refused. Extra files, including WAL/SHM/journal sidecars,
 invalidate a standalone snapshot. The payload is hashed before and after inspecting it.
 
+Python 3.12+ is required so SQLITE_DBCONFIG_DEFENSIVE can be enabled and read back on every
+source, target and verifier connection. A schema metadata pass rejects virtual tables
+(rootpage=0) before integrity checks and table queries; FTS/RTree are outside this release.
 Inspection opens immutable=1 with mode=ro, query_only=ON and trusted_schema=OFF. This avoids
 writing sidecars for the snapshot, and assumes the input stays unchanged. Hashes detect many
 concurrent modifications but are not a lock or defense against a hostile concurrent writer.
@@ -36,7 +39,7 @@ The schema fingerprint is SHA-256 over rows sorted by type/name/table name, each
 a compact ensure_ascii JSON array of type/name/table-name/SQL plus newline. Schema statements
 over 1,048,576 characters, encoded schema inventories above 16 MiB, more than 10,000 user
 tables and manifests above 2 MiB are refused. SQLite internal sqlite_* tables are excluded
-from row counts; other physical/virtual/shadow tables are included when the runtime supports them.
+from row counts. Virtual tables and databases requiring custom modules are not supported.
 
 PRAGMA integrity_check(20) must return only ok. PRAGMA foreign_key_check must return no rows.
 user_version, application_id, schema fingerprint and per-table row counts must match the manifest.
@@ -68,7 +71,7 @@ Security boundaries: no encryption, authenticity signature, PITR, migration or a
 assertion execution. Anyone who can rewrite the payload and manifest together can create a new
 valid snapshot. Backups contain all database data, and manifests disclose table names/counts.
 Use trusted local paths and maintain permissions. A maintained Python/SQLite build is required;
-this application is not a native SQLite parser sandbox. Custom extensions/collations and encrypted
+this application is not a native SQLite parser sandbox. Virtual tables, custom extensions/collations and encrypted
 databases may not work and are outside the 0.1.0 support contract.
 
 References: [Online Backup API](https://sqlite.org/backup.html),

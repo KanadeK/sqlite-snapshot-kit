@@ -9,7 +9,8 @@ missing or unexpectedly empty application table. The restore command verifies th
 
 ## Install
 
-Requires Python 3.10+ with sqlite3 (included in standard Python distributions).
+Requires Python 3.12+ with sqlite3 and its defensive-configuration API.
+Use a maintained Python/SQLite distribution with current vendor security patches.
 No third-party runtime dependencies, sqlite3 executable, Docker, service or API key is needed.
 From a source checkout:
 
@@ -92,11 +93,12 @@ The manifest is **not signed**: modifying both files can produce another valid s
 SHA-256 detects mismatch against the supplied manifest, not who created it. The database copy
 contains all application data; protect the directory with appropriate filesystem permissions.
 
-Custom SQLite extensions/collations, SQLCipher and application-level invariants are outside
+Virtual tables (including FTS and RTree), custom SQLite extensions/collations, SQLCipher and application-level invariants are outside
 the support contract. Initialized empty databases are supported; zero-byte uninitialized files
 are refused. SQL statements above 1,048,576 characters, schema inventories over 16 MiB,
-more than 10,000 user tables and manifests over 2 MiB are refused. Virtual/shadow tables are
-counted if supported by the local SQLite build. See [design](docs/DESIGN.md) for exact rules.
+more than 10,000 user tables and manifests over 2 MiB are refused. SQLite defensive mode is
+enabled on source, target and verifier connections. Virtual-table databases are rejected
+before integrity checks or user-table queries. See [design](docs/DESIGN.md) for exact rules.
 
 SQLite's own `.backup` is a good option when you already maintain verification scripts.
 [RestoreVerify](https://github.com/RestoreVerify/restoreverify) handles broader database restore
@@ -117,12 +119,12 @@ python -m unittest discover -s tests -v
 ```
 
 See [CONTRIBUTING](CONTRIBUTING.md), [SECURITY](SECURITY.md) and [MIT license](LICENSE).
-The read-only CI configuration targets Windows/Ubuntu/macOS with Python 3.10/3.13;
+The read-only CI configuration targets Windows/Ubuntu/macOS with Python 3.12/3.13;
 remote CI success must be established by an actual published run.
 
 ## 中文说明
 
-这是一个仅依赖 Python 标准库的离线 SQLite 快照工具，提供创建、验证、恢复到新文件三个命令。
+这是一个要求 Python 3.12+、仅依赖标准库的离线 SQLite 快照工具，提供创建、验证、恢复到新文件三个命令。
 在线备份会包含已提交的 WAL 数据；验证检查摘要、SQLite 完整性、外键、表结构和行数。
 `--min-rows notes=1` 可要求指定表存在且达到最小行数。恢复后还会重新检查新数据库。
 
@@ -130,6 +132,7 @@ remote CI success must be established by an actual published run.
 `sqlite-snapshot-kit create app.sqlite3 backup-001`，然后执行 `verify backup-001` 和
 `restore backup-001 restored.sqlite3`。输出目录与文件必须是新路径，不覆盖生产数据库。
 
-快照包含全部数据库数据，清单也包含表名和行数。它不提供加密、签名、调度或增量恢复。
+快照包含全部数据库数据，清单也包含表名和行数。首版拒绝 FTS、RTree 等虚拟表数据库，
+并显式启用 defensive 模式。它不提供加密、签名、调度或增量恢复。
 退出码 0 表示成功，1 表示验证失败，2 表示参数、预算或操作错误。卸载使用
 `python -m pip uninstall sqlite-snapshot-kit`，快照和恢复文件由使用者自行清理。
