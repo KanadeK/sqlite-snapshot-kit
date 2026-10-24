@@ -1,6 +1,6 @@
 # Local validation — 2026-10-23
 
-Version: 0.1.0. Requires Python 3.12+. No public release is claimed by this record.
+Version: 0.1.0. Requires Python 3.12+. This is the pre-publication local test record.
 
 | Actual check | Result |
 |---|---|
@@ -26,5 +26,6 @@ were bundled. The project is MIT; its license does not replace the separately su
 runtime's licenses. The pattern scan and review do not prove absence of all possible security
 problems. See README.md, SECURITY.md and DESIGN.md for the actual boundaries.
 
-Remote GitHub CI, owner/commit account attribution, contributors=1 and Release are pending.
-All local commits use the requested KanadeK identity; remote mapping must still be observed.
+Current remote checks are available from [GitHub Actions](https://github.com/KanadeK/sqlite-snapshot-kit/actions/workflows/ci.yml).
+The publication gate additionally verifies owner, commit attribution, exactly one contributor
+and the Release tag. The historical local checks above alone do not prove those remote outcomes.

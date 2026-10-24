@@ -1,5 +1,7 @@
 # sqlite-snapshot-kit
 
+[![CI](https://github.com/KanadeK/sqlite-snapshot-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/KanadeK/sqlite-snapshot-kit/actions/workflows/ci.yml)
+
 Create a self-contained SQLite snapshot, verify it after copying, and rehearse a restore into
 a **new file**. One offline CLI; Python's standard library does the work.
 
@@ -15,6 +17,8 @@ No third-party runtime dependencies, sqlite3 executable, Docker, service or API 
 From a source checkout:
 
 ```sh
+git clone https://github.com/KanadeK/sqlite-snapshot-kit.git
+cd sqlite-snapshot-kit
 python -m venv .venv
 # Linux/macOS:
 . .venv/bin/activate
