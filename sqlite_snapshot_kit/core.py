@@ -151,7 +151,11 @@ def _hash(path: Path, deadline: float, max_bytes: int) -> tuple[int, str]:
 
 
 def _exclusive(path: Path):
-    return os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb")
+    # Windows O_EXCL can follow a dangling link; check the directory entry itself.
+    if os.path.lexists(path):
+        raise FileExistsError("destination already exists")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    return os.fdopen(os.open(path, flags, 0o600), "wb")
 
 
 def _summary(manifest: dict) -> dict:

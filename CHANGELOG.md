@@ -7,3 +7,4 @@
 - Restore only into a new file, then check the actual restored database.
 - Bound operations, reject ambiguous manifests/sidecars and include synthetic restore drills and CI.
 - Require Python 3.12+ defensive configuration and reject virtual-table databases before query inspection.
+- Refuse dangling Windows restore links explicitly and use O_NOFOLLOW where available.

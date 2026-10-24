@@ -53,6 +53,10 @@ files, dangling symlinks and orphan target sidecars are refused. Bytes are copie
 fsynced, then independently inspected. Failure attempts to remove only the new output file
 with the same file identity. Switching a live application to that file is an operator action.
 
+Creation checks lexists first because Windows exclusive opens may follow dangling symlinks.
+O_NOFOLLOW is added where the OS provides it. Destination directories must be under the
+operator's control; this does not sandbox hostile concurrent filesystem replacement.
+
 Timeouts are cooperative checks in backup callbacks, SQLite progress handlers and streaming
 I/O; they are not process-level hard deadlines. A permanently locked source may fail sooner
 than the overall timeout. Default payload budget is 4 GiB and timeout is 30 seconds per operation.
